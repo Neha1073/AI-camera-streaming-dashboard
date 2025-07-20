@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Camera Streaming System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #093f86 100%);
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 25px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: transparent;
+            color: #3498db;
+        }
+
+        .view-btn.active {
+            background: #3498db;
+            color: white;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .ai-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* Single View Styles */
+        .single-view {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .video-stream-single {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Grid View Styles */
+        .grid-view {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .grid-view.active {
+            display: grid;
+        }
+
+        .camera-grid-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .camera-grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .camera-grid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .camera-grid-title {
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .grid-remove-btn {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .grid-remove-btn:hover {
+            background: rgba(231, 76, 60, 1);
+        }
+
+        .video-stream-grid {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        /* Sidebar Styles */
+        .add-camera-section {
+            margin-bottom: 30px;
+        }
+
+        .add-camera-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #1e3c72 0%, #022972 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .add-camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .camera-list {
+            margin-bottom: 30px;
+        }
+
+        .camera-list h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .camera-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .camera-item:hover {
+            background: rgba(52, 152, 219, 0.2);
+            transform: translateX(5px);
+        }
+
+        .camera-item.active {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+        }
+
+        .camera-item.in-grid {
+            border-left: 4px solid #27ae60;
+        }
+
+        .camera-info {
+            margin-bottom: 10px;
+        }
+
+        .camera-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .camera-id {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .camera-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #2980b9;
+        }
+
+        .btn-grid {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-grid:hover {
+            background: #229954;
+        }
+
+        .btn-grid.remove {
+            background: #e74c3c;
+        }
+
+        .btn-grid.remove:hover {
+            background: #c0392b;
+        }
+
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #e67e22;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 500px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .modal-header h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close {
+            color: #95a5a6;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #e74c3c;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .no-camera-message {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 18px;
+            margin-top: 50px;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #27ae60;
+        }
+
+        .status-indicator.offline {
+            background: #e74c3c;
+        }
+
+        .stats-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(52, 152, 219, 0.2);
+        }
+
+        .stats-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 250px;
+            }
+            
+            .main-content {
+                height: calc(100vh - 250px);
+            }
+
+            .grid-view {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="add-camera-section">
+                <button class="add-camera-btn" onclick="openAddCameraModal()">
+                    + Add New Camera
+                </button>
+            </div>
+
+            <div class="stats-section">
+                <h3>System Status</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalCameras">0</div>
+                        <div class="stat-label">Total Cameras</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="activeCameras">0</div>
+                        <div class="stat-label">Active Streams</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="gridCamerasCount">0</div>
+                        <div class="stat-label">Grid View</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="aiStatus">OFF</div>
+                        <div class="stat-label">AI Detection</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="camera-list">
+                <h2>Camera List</h2>
+                <div id="cameraList">
+                    <!-- Camera items will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>Enhanced Camera Streaming System</h1>
+                <div class="header-controls">
+                    <div class="view-toggle">
+                        <button class="view-btn active" id="singleViewBtn" onclick="switchView('single')">Single View</button>
+                        <button class="view-btn" id="gridViewBtn" onclick="switchView('grid')">Grid View</button>
+                    </div>
+                    <div class="ai-toggle-container">
+                        <span>AI Detection:</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="aiToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span id="aiStatusHeader">OFF</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Single View -->
+                <div id="singleView" class="single-view">
+                    <div class="no-camera-message">
+                        Select a camera from the sidebar to view stream
+                    </div>
+                </div>
+
+                <!-- Grid View -->
+                <div id="gridView" class="grid-view">
+                    <!-- Grid items will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Camera Modal -->
+    <div id="addCameraModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Camera</h3>
+                <span class="close" onclick="closeAddCameraModal()">&times;</span>
+            </div>
+            <form id="addCameraForm">
+                <div class="form-group">
+                    <label for="camId">Camera ID:</label>
+                    <input type="text" id="camId" name="cam_id" required placeholder="e.g., cam_03">
+                </div>
+                <div class="form-group">
+                    <label for="camLocation">Location:</label>
+                    <input type="text" id="camLocation" name="cam_location" required placeholder="e.g., Main Entrance">
+                </div>
+                <div class="form-group">
+                    <label for="camUrl">RTSP URL:</label>
+                    <input type="text" id="camUrl" name="cam_url" required placeholder="rtsp://user:pass@port/stream">
+                </div>
+                <div class="form-group">
+                    <label for="camPassword">Password:</label>
+                    <input type="password" id="camPassword" name="cam_password" required placeholder="Camera password">
+                </div>
+                <button type="submit" class="btn-primary">Add Camera</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Camera Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Camera</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editCameraForm">
+                <input type="hidden" id="editCamId">
+                <div class="form-group">
+                    <label for="editCamLocation">Location:</label>
+                    <input type="text" id="editCamLocation" name="cam_location" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCamUrl">RTSP URL:</label>
+                    <input type="text" id="editCamUrl" name="cam_url" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCamPassword">Password:</label>
+                    <input type="password" id="editCamPassword" name="cam_password" required>
+                </div>
+                <button type="submit" class="btn-primary">Update Camera</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let cameras = [];
+        let currentCameraId = null;
+        let currentView = 'single';
+        let gridCameras = [];
+        let aiEnabled = false;
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCameras();
+            loadAIStatus();
+            loadGridStatus();
+            setupEventListeners();
+            startDataRefresh();
+        });
+
+        function setupEventListeners() {
+            // Add camera form
+            document.getElementById('addCameraForm').addEventListener('submit', addCamera);
+            
+            // AI toggle
+            document.getElementById('aiToggle').addEventListener('change', toggleAI);
+            
+            // Edit modal
+            document.getElementById('editCameraForm').addEventListener('submit', updateCamera);
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', function(event) {
+                const addModal = document.getElementById('addCameraModal');
+                const editModal = document.getElementById('editModal');
+                
+                if (event.target === addModal) {
+                    closeAddCameraModal();
+                } else if (event.target === editModal) {
+                    closeEditModal();
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeAddCameraModal();
+                    closeEditModal();
+                }
+            });
+        }
+
+        // Mock API functions for demo purposes
+        async function loadCameras() {
+            try {
+                const response = await fetch('/api/cameras');
+                if (!response.ok) throw new Error('Failed to load cameras');
+                
+                cameras = await response.json();
+                renderCameraList();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading cameras:', error);
+                showNotification('Failed to load cameras', 'error');
+            }
+        }
+
+        async function loadGridStatus() {
+            try {
+                // Simulate API call
+                renderGridView();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading grid status:', error);
+            }
+        }
+
+        async function loadAIStatus() {
+            try {
+                // Simulate API call
+                document.getElementById('aiToggle').checked = aiEnabled;
+                document.getElementById('aiStatusHeader').textContent = aiEnabled ? 'ON' : 'OFF';
+                document.getElementById('aiStatus').textContent = aiEnabled ? 'ON' : 'OFF';
+            } catch (error) {
+                console.error('Error loading AI status:', error);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalCameras').textContent = cameras.length;
+            document.getElementById('activeCameras').textContent = cameras.filter(cam => cam.status === 'online').length;
+            document.getElementById('gridCamerasCount').textContent = gridCameras.length;
+        }
+
+        function renderCameraList() {
+            const cameraList = document.getElementById('cameraList');
+            cameraList.innerHTML = '';
+            
+            if (cameras.length === 0) {
+                cameraList.innerHTML = '<div class="no-camera-message" style="color: #7f8c8d; text-align: center; padding: 20px;">No cameras added yet</div>';
+                return;
+            }
+            
+            cameras.forEach(camera => {
+                const isInGrid = gridCameras.includes(camera.cam_id);
+                const cameraItem = document.createElement('div');
+                cameraItem.className = `camera-item ${currentCameraId === camera.cam_id ? 'active' : ''} ${isInGrid ? 'in-grid' : ''}`;
+                
+                cameraItem.innerHTML = `
+                    <div class="camera-info">
+                        <div class="camera-name">${camera.cam_location}</div>
+                        <div class="camera-id">${camera.cam_id}</div>
+                    </div>
+                    <div class="camera-actions">
+                        <button class="btn btn-view" onclick="selectCamera('${camera.cam_id}')">View</button>
+                        <button class="btn btn-grid ${isInGrid ? 'remove' : ''}" 
+                                onclick="toggleGridCamera('${camera.cam_id}')">
+                            ${isInGrid ? 'Remove from Grid' : 'Add to Grid'}
+                        </button>
+                        <button class="btn btn-edit" onclick="editCamera('${camera.cam_id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteCamera('${camera.cam_id}')">Delete</button>
+                    </div>
+                    <div class="status-indicator ${camera.status === 'offline' ? 'offline' : ''}"></div>
+                `;
+                
+                cameraList.appendChild(cameraItem);
+            });
+        }
+
+        // In renderGridView()
+    function renderGridView() {
+        const gridView = document.getElementById('gridView');
+        gridView.innerHTML = '';
+        
+        if (gridCameras.length === 0) {
+            gridView.innerHTML = '<div class="no-camera-message">No cameras in grid view</div>';
+            return;
+        }
+        
+        gridCameras.forEach(camId => {
+            const camera = cameras.find(cam => cam.cam_id === camId);
+            if (camera) {
+                const gridItem = document.createElement('div');
+                gridItem.className = 'camera-grid-item';
+                gridItem.innerHTML = `
+                    <div class="camera-grid-header">
+                        <div class="camera-grid-title">${camera.cam_location}</div>
+                        <button class="grid-remove-btn" onclick="toggleGridCamera('${camId}')">Remove</button>
+                    </div>
+                    <div class="stream-container">
+                        <img src="/api/stream/${camId}" 
+                            class="video-stream-grid" 
+                            alt="${camera.cam_location}"
+                            onerror="this.parentElement.querySelector('.stream-error').style.display='block'">
+                        <div class="stream-loading">Loading stream...</div>
+                        <div class="stream-error" style="display:none; color:red;">
+                            Stream unavailable. Trying to reconnect...
+                        </div>
+                    </div>
+                `;
+                gridView.appendChild(gridItem);
+            }
+        });
+    }
+
+        function switchView(viewType) {
+            currentView = viewType;
+            
+            const singleView = document.getElementById('singleView');
+            const gridView = document.getElementById('gridView');
+            const singleBtn = document.getElementById('singleViewBtn');
+            const gridBtn = document.getElementById('gridViewBtn');
+            
+            if (viewType === 'single') {
+                singleView.style.display = 'flex';
+                gridView.classList.remove('active');
+                singleBtn.classList.add('active');
+                gridBtn.classList.remove('active');
+            } else {
+                singleView.style.display = 'none';
+                gridView.classList.add('active');
+                singleBtn.classList.remove('active');
+                gridBtn.classList.add('active');
+                renderGridView();
+            }
+        }
+
+        function selectCamera(camId) {
+            currentCameraId = camId;
+            renderCameraList();
+            
+            if (currentView === 'single') {
+                const camera = cameras.find(cam => cam.cam_id === camId);
+                const singleView = document.getElementById('singleView');
+                singleView.innerHTML = `
+                    <div style="text-align: center;">
+                        <img src="/api/stream/${camId}" 
+                            class="video-stream-single" 
+                            alt="Camera Stream - ${camera ? camera.cam_location : 'Unknown'}">
+                        <div style="color: rgba(255,255,255,0.8); margin-top: 15px; font-size: 16px;">
+                            ${camera ? camera.cam_location : 'Unknown Camera'} - Live Stream
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function toggleGridCamera(camId) {
+            try {
+                const index = gridCameras.indexOf(camId);
+                if (index > -1) {
+                    gridCameras.splice(index, 1);
+                    showNotification('Camera removed from grid', 'info');
+                } else {
+                    gridCameras.push(camId);
+                    showNotification('Camera added to grid', 'success');
+                }
+                
+                renderCameraList();
+                if (currentView === 'grid') {
+                    renderGridView();
+                }
+                updateStats();
+            } catch (error) {
+                console.error('Error toggling grid camera:', error);
+                showNotification('Error updating grid view', 'error');
+            }
+        }
+
+        // Modal functions
+        function openAddCameraModal() {
+            document.getElementById('addCameraModal').style.display = 'block';
+            // Focus on first input
+            setTimeout(() => {
+                document.getElementById('camId').focus();
+            }, 100);
+        }
+
+        function closeAddCameraModal() {
+            document.getElementById('addCameraModal').style.display = 'none';
+            document.getElementById('addCameraForm').reset();
+        }
+
+        function editCamera(camId) {
+            const camera = cameras.find(cam => cam.cam_id === camId);
+            if (camera) {
+                document.getElementById('editCamId').value = camera.cam_id;
+                document.getElementById('editCamLocation').value = camera.cam_location;
+                document.getElementById('editCamUrl').value = camera.cam_url;
+                document.getElementById('editCamPassword').value = camera.cam_password;
+                document.getElementById('editModal').style.display = 'block';
+                
+                // Focus on first input
+                setTimeout(() => {
+                    document.getElementById('editCamLocation').focus();
+                }, 100);
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editCameraForm').reset();
+        }
+
+        async function addCamera(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const cameraData = Object.fromEntries(formData.entries());
+            
+            try {
+                // Make actual API call to backend
+                const response = await fetch('/api/cameras', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(cameraData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to add camera');
+                
+                const newCamera = await response.json();
+                
+                // Update local state with the camera from the database
+                cameras.push(newCamera);
+                
+                closeAddCameraModal();
+                renderCameraList();
+                updateStats();
+                showNotification('Camera added successfully!', 'success');
+            } catch (error) {
+                console.error('Error adding camera:', error);
+                showNotification('Error adding camera: ' + error.message, 'error');
+            }
+        }
+
+        async function updateCamera(event) {
+            event.preventDefault();
+            
+            const camId = document.getElementById('editCamId').value;
+            const formData = new FormData(event.target);
+            const updateData = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch(`/api/cameras/${camId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                if (!response.ok) throw new Error('Update failed');
+                
+                // Refresh camera list
+                await loadCameras();
+                closeEditModal();
+                showNotification('Camera updated successfully!', 'success');
+            } catch (error) {
+                console.error('Error updating camera:', error);
+                showNotification('Error updating camera', 'error');
+            }
+        }
+
+        async function deleteCamera(camId) {
+            if (confirm('Are you sure you want to delete this camera?')) {
+                try {
+                    // Remove from cameras array
+                    const cameraIndex = cameras.findIndex(cam => cam.cam_id === camId);
+                    if (cameraIndex > -1) {
+                        cameras.splice(cameraIndex, 1);
+                        
+                        // Remove from grid if present
+                        const gridIndex = gridCameras.indexOf(camId);
+                        if (gridIndex > -1) {
+                            gridCameras.splice(gridIndex, 1);
+                        }
+                        
+                        // Clear single view if this camera was selected
+                        if (currentCameraId === camId) {
+                            currentCameraId = null;
+                            const singleView = document.getElementById('singleView');
+                            singleView.innerHTML = '<div class="no-camera-message">Select a camera from the sidebar to view stream</div>';
+                        }
+                        
+                        renderCameraList();
+                        renderGridView();
+                        updateStats();
+                        showNotification('Camera deleted successfully!', 'success');
+                    } else {
+                        showNotification('Camera not found', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting camera:', error);
+                    showNotification('Error deleting camera', 'error');
+                }
+            }
+        }
+
+        async function toggleAI() {
+            const enabled = document.getElementById('aiToggle').checked;
+            
+            try {
+                const response = await fetch('/api/ai-toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ enabled: enabled })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to toggle AI');
+                }
+                
+                const data = await response.json();
+                
+                // Update UI based on response
+                aiEnabled = data.enabled;
+                document.getElementById('aiToggle').checked = aiEnabled;
+                document.getElementById('aiStatusHeader').textContent = aiEnabled ? 'ON' : 'OFF';
+                document.getElementById('aiStatus').textContent = aiEnabled ? 'ON' : 'OFF';
+                
+                showNotification(`AI Detection ${aiEnabled ? 'enabled' : 'disabled'}`, 
+                                aiEnabled ? 'success' : 'info');
+            } catch (error) {
+                console.error('Error toggling AI detection:', error);
+                // Revert the toggle if there was an error
+                document.getElementById('aiToggle').checked = !enabled;
+                showNotification('Error toggling AI detection', 'error');
+            }
+        }
+
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 2000;
+                animation: slideIn 0.3s ease-out;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                max-width: 300px;
+                word-wrap: break-word;
+                background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : type === 'info' ? '#3498db' : '#f39c12'};
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove notification
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function startDataRefresh() {
+            // Refresh data every 30 seconds
+            setInterval(() => {
+                if (currentView === 'grid') {
+                    renderGridView();
+                }
+                
+                // Simulate status changes for demo
+                cameras.forEach(camera => {
+                    if (Math.random() > 0.95) { // 5% chance to change status
+                        camera.status = camera.status === 'online' ? 'offline' : 'online';
+                    }
+                });
+                
+                renderCameraList();
+                updateStats();
+            }, 30000);
+        }
+
+        // Utility functions
+        function generateCameraId() {
+            const timestamp = Date.now().toString().slice(-4);
+            return `cam_${timestamp}`;
+        }
+
+        function validateRTSPUrl(url) {
+            const rtspPattern = /^rtsp:\/\/.+/;
+            return rtspPattern.test(url);
+        }
+
+        // Enhanced form validation
+        document.getElementById('addCameraForm').addEventListener('input', function(event) {
+            if (event.target.name === 'cam_url') {
+                const isValid = validateRTSPUrl(event.target.value);
+                event.target.style.borderColor = isValid || event.target.value === '' ? '#ecf0f1' : '#e74c3c';
+            }
+        });
+
+        document.getElementById('editCameraForm').addEventListener('input', function(event) {
+            if (event.target.name === 'cam_url') {
+                const isValid = validateRTSPUrl(event.target.value);
+                event.target.style.borderColor = isValid || event.target.value === '' ? '#ecf0f1' : '#e74c3c';
+            }
+        });
+
+        // Auto-generate camera ID if empty
+        document.getElementById('camId').addEventListener('focus', function() {
+            if (this.value === '') {
+                this.value = generateCameraId();
+            }
+        });
+
+        // Handle fullscreen for single view
+        function toggleFullscreen(element) {
+            if (!document.fullscreenElement) {
+                element.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Add double-click to fullscreen for single view
+        document.getElementById('singleView').addEventListener('dblclick', function() {
+            const videoElement = this.querySelector('.video-stream-single');
+            if (videoElement) {
+                toggleFullscreen(videoElement);
+            }
+        });
+
+        // Add context menu for camera items
+        function showContextMenu(event, camId) {
+            event.preventDefault();
+            // Context menu implementation would go here
+            console.log('Context menu for camera:', camId);
+        }
+
+        // Performance monitoring
+        let performanceMetrics = {
+            loadTime: 0,
+            renderTime: 0,
+            apiCalls: 0
+        };
+
+        function measurePerformance(fn, label) {
+            const start = performance.now();
+            const result = fn();
+            const end = performance.now();
+            performanceMetrics[label] = end - start;
+            console.log(`${label}: ${end - start}ms`);
+            return result;
+        }
+
+        // Initialize app
+        console.log('Enhanced Camera Streaming System initialized');
+        console.log('Features: Single/Grid view, AI detection toggle, Camera management');
+
+    </script>
+</body>
+</html>
