@@ -22,7 +22,5 @@ An advanced real-time camera streaming system with AI-powered object detection a
 ```text
 .
 ├── try.py               # FastAPI backend with AI and camera streaming logic
-├── dashboard.html       # Frontend dashboard UI
 ├── known_faces/         # Directory to store face images for recognition
-├── templates/           # Jinja2 template directory (should contain dashboard.html)
-├── static/              # (Optional) for CSS/JS files if split from HTML
+├── templates/ dashboard.html          # Jinja2 template directory (should contain dashboard.html)
